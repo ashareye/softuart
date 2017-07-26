@@ -1,13 +1,14 @@
 To use it   
 ====   
-* put softuart.h & softuart.c into {your micropython's path}/esp8266
-* add "extern const mp_obj_type_t mp_softuart_type;"  to modmachine.h   
-* add "{ MP_ROM_QSTR(MP_QSTR_SOFTUART), MP_ROM_PTR(&mp_softuart_type) },"  to modmachine.c after "{ MP_ROM_QSTR(MP_QSTR_UART...   
+* put softuart.h & softuart.c into {your micropython's path}/esp8266/
+* add "extern const mp_obj_type_t mp_softuart_type;"  to esp8266/modmachine.h   
+* add "{ MP_ROM_QSTR(MP_QSTR_SOFTUART), MP_ROM_PTR(&mp_softuart_type) },"  to esp8266/modmachine.c after "{ MP_ROM_QSTR(MP_QSTR_UART...   
 * add "softuart.c" to SRC_C of esp8266/Makefile   
 * add "*softuart.o(.literal*, .text*)" to esp8266_common.ld after *machine_uart.o...   
+* make it and flash to esp8266   
    
    
-then make it and reset in micropython's REPL   
+reset in micropython's REPL   
 ====   
 ```python
 >>>from machine import SOFTUART;   
