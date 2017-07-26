@@ -1,4 +1,5 @@
-###To use it   
+To use it   
+====   
 * put softuart.h & softuart.c into {your micropython's path}/esp8266
 * add "extern const mp_obj_type_t mp_softuart_type;"  to modmachine.h   
 * add "{ MP_ROM_QSTR(MP_QSTR_SOFTUART), MP_ROM_PTR(&mp_softuart_type) },"  to modmachine.c after "{ MP_ROM_QSTR(MP_QSTR_UART...   
@@ -7,6 +8,7 @@
    
    
 ###then make it and reset in micropython's REPL   
+====   
 ```python
 >>>from machine import SOFTUART;   
 >>>s = SOFTUART(tx=14,rx=12,baudrate=115200)   
