@@ -60,7 +60,7 @@ const softuart_reg_t softuart_reg[] =
 
 // void* for type compatibility with etshal.h: void ets_isr_attach(int irq_no, void (*handler)(void *), void *arg);
 // 接收中断服务程序
-void softuart_gpio_irq(void *p)
+void MP_FASTCODE(softuart_gpio_irq)(void *p)
 {
 
   // 停止rxpin中断功能，准备作为输入读取数据
@@ -149,7 +149,7 @@ BOOL softuart_init(uint8_t txpin, uint8_t rxpin, uint32_t baudrate)
 }
 
 // Function for printing individual characters
-void softuart_putchar(uint8_t data)
+void MP_FASTCODE(softuart_putchar)(uint8_t data)
 {
   GPIO_OUTPUT_SET(GPIO_ID_PIN(s->txpin.gpio_id), 0);    // 先输出一个起始位0
   for (uint8_t i=0;i<8;i++) {
