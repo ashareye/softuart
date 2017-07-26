@@ -7,7 +7,7 @@ To use it
 * add "*softuart.o(.literal*, .text*)" to esp8266_common.ld after *machine_uart.o...   
    
    
-###then make it and reset in micropython's REPL   
+then make it and reset in micropython's REPL   
 ====   
 ```python
 >>>from machine import SOFTUART;   
