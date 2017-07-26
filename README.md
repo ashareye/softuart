@@ -3,6 +3,7 @@ add "{ MP_ROM_QSTR(MP_QSTR_SOFTUART), MP_ROM_PTR(&mp_softuart_type) },"  to modm
 add "softuart.c" to SRC_C of esp8266/Makefile
 add "*softuart.o(.literal*, .text*)" to esp8266_common.ld after *machine_uart.o...
 
+
 then make it and reset in micropython's REPL 
 	from machine import SOFTUART; 
 	s = SOFTUART(tx=14,rx=12,baudrate=115200)
