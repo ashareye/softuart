@@ -161,9 +161,9 @@ void MP_FASTCODE(softuart_putchar)(uint8_t data)
   mp_hal_delay_us_fast(s->bit_time<<3);
 }
 
-BOOL softuart_available(void)
+uint8_t softuart_getcount(void)
 {
-  return (s->buffer.receive_buffer_head != s->buffer.receive_buffer_tail);  
+  return (SOFTUART_MAX_RX_BUFF - s->buffer.receive_buffer_head + s->buffer.receive_buffer_tail) % SOFTUART_MAX_RX_BUFF;  
 }
 
 uint8_t softuart_getchar(void)
@@ -173,6 +173,28 @@ uint8_t softuart_getchar(void)
   uint8_t d = s->buffer.receive_buffer[s->buffer.receive_buffer_head]; // grab next byte
   s->buffer.receive_buffer_head = (s->buffer.receive_buffer_head + 1) % SOFTUART_MAX_RX_BUFF;
   return d;
+}
+
+BOOL softuart_wait(uint32_t timeout)
+{
+  if (s->buffer.receive_buffer_head != s->buffer.receive_buffer_tail) return true;  // 如果有数据直接返回
+
+  if (timeout == 0) timeout = SOFTUART_DEF_WAITUS;     // 如果是0则默认等待时间
+  uint32_t starttime = system_get_time();    // 记录一下开始时间
+  uint32_t now, endtime = starttime + timeout; // 计算结束时间
+  BOOL nowover = false;    // 判断now是否翻转了
+  while(true) {
+    if (s->buffer.receive_buffer_head != s->buffer.receive_buffer_tail) return true;   // 如果收到字符那么直接返回true
+    now = (uint32_t)system_get_time();
+    // 只要小于starttime就表示翻转过了，单独记录是因为如果timeout_us很大，那么now翻转后也会超过startime就无法判断是否翻转过了
+    if (now < starttime) nowover = true;    // 只要小于一次就表示溢出了，再超过starttime也不会改变
+    if (endtime > starttime) {        // endtime没有溢出
+      if (now > endtime || nowover) return false;      // now超出endtime或者now溢出，说明超过endtime了
+    } else {
+      if (nowover && now > endtime) return false; // endtime,now都溢出了，而且now超过endtime
+    }
+    ets_event_poll();
+  }
 }
 
 // Flush data from buffer
@@ -199,10 +221,16 @@ STATIC mp_obj_t mp_softuart_put(mp_obj_t self, mp_obj_t data) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(mp_softuart_put_obj, mp_softuart_put);
 
-STATIC mp_obj_t mp_softuart_available(mp_obj_t self) {
-  return mp_obj_new_bool(softuart_available());
+STATIC mp_obj_t mp_softuart_getcount(mp_obj_t self) {
+  return mp_obj_new_int_from_uint(softuart_getcount());
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(mp_softuart_available_obj, mp_softuart_available);
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(mp_softuart_getcount_obj, mp_softuart_getcount);
+
+STATIC mp_obj_t mp_softuart_isoverflow(mp_obj_t self) {
+  if (s->buffer.buffer_overflow) return mp_const_true;
+  else return mp_const_false;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(mp_softuart_isoverflow_obj, mp_softuart_isoverflow);
 
 STATIC mp_obj_t mp_softuart_flush(mp_obj_t self) {
   softuart_flush();
@@ -212,25 +240,9 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(mp_softuart_flush_obj, mp_softuart_flush);
 
 STATIC mp_obj_t mp_softuart_wait(size_t n_args, const mp_obj_t *args)
 {
-  if (softuart_available()) return mp_const_true;  // 如果有数据直接返回
-
-  uint32_t us = (n_args == 2)? (uint32_t)mp_obj_get_int(args[1]) : SOFTUART_DEF_WAITUS;  // 没有指定则默认等待时间
-  if (us == 0) us = SOFTUART_DEF_WAITUS;     // 如果是0则默认等待时间
-  uint32_t starttime = system_get_time();    // 记录一下开始时间
-  uint32_t now, endtime = starttime + us; // 计算结束时间
-  BOOL nowover = false;    // 判断now是否翻转了
-  while(true) {
-    if (softuart_available()) return mp_const_true;   // 如果收到字符那么直接返回true
-    now = (uint32_t)system_get_time();
-    // 只要小于starttime就表示翻转过了，单独记录是因为如果timeout_us很大，那么now翻转后也会超过startime就无法判断是否翻转过了
-    if (now < starttime) nowover = true;    // 只要小于一次就表示溢出了，再超过starttime也不会改变
-    if (endtime > starttime) {        // endtime没有溢出
-      if (now > endtime || nowover) return mp_const_false;      // now超出endtime或者now溢出，说明超过endtime了
-    } else {
-      if (nowover && now > endtime) return mp_const_false; // endtime,now都溢出了，而且now超过endtime
-    }
-    ets_event_poll();
-  }
+  uint32_t us = (n_args == 2)? (uint32_t)mp_obj_get_int(args[1]) : SOFTUART_DEF_WAITUS;
+  if (softuart_wait(us)) return mp_const_true;
+  else  return mp_const_false;
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_softuart_wait_obj, 1, 2, mp_softuart_wait);
 
@@ -246,6 +258,16 @@ STATIC mp_obj_t mp_softuart_write(size_t n_args, const mp_obj_t *args)
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_softuart_write_obj, 2, 3, mp_softuart_write);
 
+STATIC mp_obj_t mp_softuart_getall(mp_obj_t self) {
+    uint8_t len = softuart_getcount();
+    if (len == 0) return mp_const_none;
+    vstr_t vstr;
+    vstr_init_len(&vstr, len);    // 初始化长度
+    for (uint8_t i=0;i<len;i++) vstr.buf[i]=softuart_getchar();
+    return mp_obj_new_str_from_vstr(&mp_type_bytes, &vstr);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(mp_softuart_getall_obj, mp_softuart_getall);
+
 // */
 
 // ----------------------------------------------------------------------------------- mp 基本类结构
@@ -254,11 +276,13 @@ MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_softuart_write_obj, 2, 3, mp_softuart_wri
 STATIC const mp_rom_map_elem_t softuart_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_get), MP_ROM_PTR(&mp_softuart_get_obj) },             // get a char
     { MP_ROM_QSTR(MP_QSTR_put), MP_ROM_PTR(&mp_softuart_put_obj) },             // put a char
-    { MP_ROM_QSTR(MP_QSTR_available), MP_ROM_PTR(&mp_softuart_available_obj) }, // bool rx available
+    { MP_ROM_QSTR(MP_QSTR_getcount), MP_ROM_PTR(&mp_softuart_getcount_obj) },   // get rx count
     { MP_ROM_QSTR(MP_QSTR_flush), MP_ROM_PTR(&mp_softuart_flush_obj) },         // flush rx buf
+    { MP_ROM_QSTR(MP_QSTR_isoverflow), MP_ROM_PTR(&mp_softuart_isoverflow_obj) },    // rx is overflow
 
     { MP_ROM_QSTR(MP_QSTR_wait), MP_ROM_PTR(&mp_softuart_wait_obj) },           // wait for rx available
     { MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&mp_softuart_write_obj) },         // write buf
+    { MP_ROM_QSTR(MP_QSTR_getall), MP_ROM_PTR(&mp_softuart_getall_obj) },       // get all rx buf
 };
 MP_DEFINE_CONST_DICT(mp_softuart_locals_dict, softuart_locals_dict_table);
 
