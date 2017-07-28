@@ -12,13 +12,14 @@ reset in micropython's REPL
 ====   
 ```python
 >>>from machine import SOFTUART;   
->>>s = SOFTUART(tx=14,rx=12,baudrate=115200)   
+>>>s = SOFTUART(tx=14,rx=12,baudrate=115200)   # default tx=14,rx=12,baudrate=115200
 >>>dir(s)  # show all method of softuart   
 >>>s.put(0x0D)   
 >>>s.write('abcdefg')   
 >>>s.write(b'\x0D\xFF\xCC')   
->>>s.wait(10000)  # wait rx for 10000us   
->>>s.available()  # rx buf available   
->>>s.get()  # pop a byte from rx buf, if none return 0   
->>>s.flush()  # clear rx buf   
+>>>s.wait(10000)  	# wait rx for 10000us,default is 10000us 
+>>>s.getcount()  	# rx buf available number   
+>>>s.get()  		# pop a byte from rx buf, if none return 0   
+>>>s.getall()  		# get all char available in rx buf 
+>>>s.flush()  		# clear rx buf   
 ```
