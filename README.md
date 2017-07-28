@@ -18,6 +18,7 @@ reset in micropython's REPL
 >>>s.write('abcdefg')   
 >>>s.write(b'\x0D\xFF\xCC')   
 >>>s.wait(10000)  	# wait rx for 10000us,default is 10000us 
+>>>s.isoverflow() 	# rx buf is overflow?
 >>>s.getcount()  	# rx buf available number   
 >>>s.get()  		# pop a byte from rx buf, if none return 0   
 >>>s.getall()  		# get all char available in rx buf, if None return None
