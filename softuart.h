@@ -64,21 +64,6 @@ typedef struct {
   uint16_t bit_time;
 } softuart_t;
 
-extern softuart_t s[1];
-
-// 初始化，速率和管脚
-BOOL softuart_init(uint8_t txpin, uint8_t rxpin, uint32_t baudrate);  
-// 发送一个字节
-void softuart_putchar(uint8_t data);
-// rx缓存内是否有数据
-BOOL softuart_available(void);
-// 从缓存中获得一个byte，注意如果没有数据返回0，所以需要先判断available
-uint8_t softuart_getchar(void);
-// 刷新rx缓存
-void softuart_flush(void);
-// 等待rx有数据，超过timeout返回false
-BOOL softuart_wait(uint32_t timeout);
-
 // ---------------------------------------------------------------------------------------------- 映射到mp的结构体
 
 // 映射到python类的结构体，包含self的属性，在make_new中初始化
