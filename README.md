@@ -24,3 +24,8 @@ reset in micropython's REPL
 >>>s.getall()  		# get all char available in rx buf, if None return None
 >>>s.flush()  		# clear rx buf   
 ```
+
+note   
+====   
+* softuart is singleton, can NOT be created again as ESP8266 with so poor GPIO number   
+* softuart can not be free, it may be realized in the feature   
