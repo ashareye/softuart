@@ -20,6 +20,6 @@ reset in micropython's REPL
 >>>s.wait(10000)  	# wait rx for 10000us,default is 10000us 
 >>>s.getcount()  	# rx buf available number   
 >>>s.get()  		# pop a byte from rx buf, if none return 0   
->>>s.getall()  		# get all char available in rx buf 
+>>>s.getall()  		# get all char available in rx buf, if None return None
 >>>s.flush()  		# clear rx buf   
 ```
